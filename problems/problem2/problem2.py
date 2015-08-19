@@ -1,5 +1,7 @@
 from Crypto.Cipher import AES
 from struct import pack, unpack
+from argparse import ArgumentParser
+from sys import stdin, stdout
 
 def _strxor(a, b):
     return "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(a, b)])
@@ -64,3 +66,24 @@ class CTR:
         e_blocks = cipher[16:]
         dec = self.encrypt(iv, e_blocks)
         return [dec[:16], dec[16:]]
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument('-m', '--mode', choices=['CBC', 'CTR'], default='CBC')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-e', '--encrypt', action='store_true')
+    group.add_argument('-d', '--decrypt', action='store_true')
+    parser.add_argument('key')
+    args = parser.parse_args()
+
+    if args.mode == 'CBC':
+        cipher = CBC(args.key.decode('hex'))
+    else:
+        cipher = CTR(args.key.decode('hex'))
+
+    if args.encrypt:
+        iv = stdin.readline().decode('hex')
+        plain = stdin.read()
+        stdout.write(cipher.encrypt(iv, plain).encode('hex'))
+    else:
+        stdout.write(cipher.decrypt(stdin.read().decode('hex'))[1])
